@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Daily: catch drift between the SDK and the live API contract.
+    - cron: "0 7 * * *"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check secapi scripts
+      - name: Type check
+        run: mypy secapi
+      - name: Unit tests
+        run: pytest -q
+
+  models-in-sync:
+    # The OpenAPI document is the contract: fail if the committed models drift
+    # from the vendored spec, or (on schedule) from the live API.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - name: Models match vendored spec
+        run: python scripts/generate_models.py --check
+      - name: Models match live API spec
+        if: github.event_name == 'schedule'
+        run: |
+          python scripts/generate_models.py \
+            --spec https://api.secapi.dev/api/core/v3/api-docs --check

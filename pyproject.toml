@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "secapi"
+dynamic = ["version"]
+description = "Official Python SDK for the SEC API (secapi.dev) - SEC filings, financials, insider and institutional data."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [{ name = "SEC API", email = "support@secapi.dev" }]
+keywords = ["sec", "edgar", "filings", "financials", "xbrl", "insider", "13f", "api", "sdk", "finance"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx[http2]>=0.27",
+    "pydantic>=2,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "ruff>=0.5",
+    "mypy>=1.8",
+]
+
+[project.urls]
+Homepage = "https://secapi.dev"
+Documentation = "https://secapi.dev/docs"
+Repository = "https://github.com/secapi-dev/secapi-python"
+Issues = "https://github.com/secapi-dev/secapi-python/issues"
+"API Reference" = "https://api.secapi.dev/api/core/v3/api-docs"
+
+[tool.hatch.version]
+path = "secapi/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["secapi"]
+
+[tool.hatch.build.targets.sdist]
+include = ["secapi", "scripts", "tests", "examples", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: tests that hit the live SEC API (require SECAPI_API_KEY)",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py38"
+
+[tool.ruff.lint]
+# UP (pyupgrade) is intentionally omitted: we keep typing.Optional/List/Dict for
+# Python 3.8 compatibility rather than the 3.10+ "X | None" syntax.
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.9"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
