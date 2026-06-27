@@ -24,7 +24,13 @@ print(results)
 ## Installation
 
 ```bash
-pip install secapi
+pip install secapi-py
+```
+
+The PyPI package is **`secapi-py`** (the plain `secapi` name is taken by another project). Import it as:
+
+```python
+from secapi import SECClient
 ```
 
 Requires Python 3.8+.

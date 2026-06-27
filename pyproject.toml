@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "secapi"
+name = "secapi-py"
 dynamic = ["version"]
 description = "Official Python SDK for the SEC API (secapi.dev) - SEC filings, financials, insider and institutional data."
 readme = "README.md"

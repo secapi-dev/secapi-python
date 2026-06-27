@@ -4,7 +4,7 @@ name: Publish to PyPI
 # Uses PyPI Trusted Publishing (OIDC) - no API token/secret to store.
 #
 # One-time setup on PyPI (https://pypi.org/manage/account/publishing/):
-#   PyPI project name: secapi
+#   PyPI project name: secapi-py
 #   Owner:  secapi-dev
 #   Repo:   secapi-python
 #   Workflow filename: release.yml
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/secapi
+      url: https://pypi.org/p/secapi-py
     permissions:
       id-token: write  # required for trusted publishing
     steps:
