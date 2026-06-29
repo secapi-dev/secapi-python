@@ -55,7 +55,7 @@ def mock_api() -> MockAPI:
 def make_client() -> Callable[..., SECClient]:
     """Factory: build a SECClient wired to a MockAPI handler."""
 
-    def _make(handler: Callable[[httpx.Request], httpx.Response], *, api_key: str = "fs_test_key", max_retries: int = 0) -> SECClient:
+    def _make(handler: Callable[[httpx.Request], httpx.Response], *, api_key: str = "test_api_key", max_retries: int = 0) -> SECClient:
         return SECClient(
             api_key=api_key,
             base_url="https://api.secapi.dev",

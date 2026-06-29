@@ -2,7 +2,7 @@
 
 Run with::
 
-    export SECAPI_API_KEY="fs_live_..."
+    export SECAPI_API_KEY="YOUR_API_KEY"
     python examples/financials.py
 """
 

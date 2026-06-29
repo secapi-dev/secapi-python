@@ -37,17 +37,16 @@ Requires Python 3.8+.
 
 ## Authentication
 
-Get an API key from [secapi.dev](https://secapi.dev). Keys look like `fs_live_...`
-(or `fs_test_...` for test mode). Provide it explicitly:
+Get an API key from [secapi.dev](https://secapi.dev). Provide it explicitly:
 
 ```python
-client = SECClient(api_key="fs_live_...")
+client = SECClient(api_key="YOUR_API_KEY")
 ```
 
 ...or set an environment variable and omit the argument:
 
 ```bash
-export SECAPI_API_KEY="fs_live_..."
+export SECAPI_API_KEY="YOUR_API_KEY"
 ```
 
 ```python
@@ -232,7 +231,7 @@ python scripts/generate_models.py --check
 pytest
 
 # Integration tests against the live API
-export SECAPI_API_KEY="fs_live_..."
+export SECAPI_API_KEY="YOUR_API_KEY"
 pytest -m integration
 ```
 

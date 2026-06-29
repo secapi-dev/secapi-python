@@ -21,7 +21,7 @@ class SECClient(BaseSECClient):
 
         from secapi import SECClient
 
-        client = SECClient(api_key="fs_live_...")
+        client = SECClient(api_key="YOUR_API_KEY")
         filings = client.filings.search(ticker="AAPL", form="10-K")
         for filing in filings.data:
             print(filing.filing_date, filing.form_type, filing.accession_number)

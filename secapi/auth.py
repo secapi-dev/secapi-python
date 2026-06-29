@@ -1,7 +1,7 @@
 """API key resolution and request authentication.
 
 The SEC API authenticates with an API key sent in the ``x-api-key`` header.
-Keys look like ``fs_live_...`` (production) or ``fs_test_...`` (test mode).
+Keys are opaque strings issued from your secapi.dev dashboard.
 """
 
 from __future__ import annotations

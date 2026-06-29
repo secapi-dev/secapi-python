@@ -29,15 +29,15 @@ def test_api_key_required_without_env(monkeypatch):
 
 
 def test_api_key_from_env(monkeypatch):
-    monkeypatch.setenv("SECAPI_API_KEY", "fs_live_from_env")
+    monkeypatch.setenv("SECAPI_API_KEY", "abcd1234_from_env")
     client = SECClient(http2=False)
-    assert client.api_key == "fs_live_from_env"
+    assert client.api_key == "abcd1234_from_env"
     client.close()
 
 
 def test_auth_header_sent(client, mock_api):
     client.entities.list()
-    assert mock_api.last.headers["x-api-key"] == "fs_test_key"
+    assert mock_api.last.headers["x-api-key"] == "test_api_key"
     assert mock_api.last.url.path == "/v1/entities"
 
 
