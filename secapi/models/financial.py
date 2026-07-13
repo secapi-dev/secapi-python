@@ -380,7 +380,7 @@ class FinancialSegmentFilter(SecBaseModel):
     metric: Optional[str] = Field(default=None, description="Canonical metric requested")
     axis: Optional[str] = Field(default=None, description="Optional XBRL axis filter")
     segment_type: Optional[str] = Field(default=None, alias="segmentType", description="Segment type filter. One or more of: product, service, geography, business, other. Allowed values: product, service, geography, business, other")
-    period: Optional[str] = Field(default=None, description="Single fiscal period filter, such as YYYY or YYYYQN")
+    period: Optional[str] = Field(default=None, description="Fiscal year as YYYY. Use qtrs to select quarter vs annual.")
     periods: Optional[str] = Field(default=None, description="Comma-separated fiscal periods for compare requests")
     accession_number: Optional[str] = Field(default=None, alias="accessionNumber", description="SEC accession number used to scope the query")
     qtrs: Optional[int] = Field(default=None, description="Quarter span filter: 1 = quarterly, 4 = annual")
