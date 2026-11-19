@@ -89,6 +89,15 @@ client.filings.form_types()
 
 ```python
 # As-reported statements - by accession number, or by ticker/CIK (latest filing)
+# By company: a ticker or a CIK, no accession number needed.
+client.financials.latest("AAPL")  # latest 10-K/10-Q: income, balance sheet, cash flow
+client.financials.statement_history("AAPL", "income-statement", period="annual", limit=5)
+client.financials.statement_history("AAPL", "cash-flow", period="ytd", limit=8)
+client.financials.company_statement("AAPL", "balance-sheet")  # as filed
+client.financials.filings("AAPL", limit=10)  # 10-K / 10-Q list with accession numbers
+client.financials.shares_outstanding(ticker="AAPL")
+
+# By filing.
 client.financials.income_statement(ticker="MSFT")
 client.financials.balance_sheet("0000320193-26-000006")
 client.financials.cash_flow(ticker="AAPL", form="10-K")
@@ -123,7 +132,8 @@ client.entities.sic_codes()
 
 ```python
 client.insiders.latest(limit=50)                       # newest insider trades
-client.insiders.search(ticker="AAPL", acquired_disposed="A")
+client.insiders.search(ticker="AAPL", transaction_code="P")  # open-market purchases
+client.insiders.search(ticker="AAPL", accepted_from="2026-01-01", accepted_to="2026-03-31", page=2)
 client.insiders.transactions(person_cik="0001214123")  # one insider
 client.insiders.buying(limit=25)
 client.insiders.top_buyers()
@@ -136,7 +146,7 @@ client.insiders.person("0001214123")
 
 ```python
 client.institutions.list(q="Berkshire")
-client.institutions.holdings("0001067983", sort="value")
+client.institutions.holdings("0001067983", sort="value", limit=50, page=2)
 client.institutions.buys("0001067983", quarter="2024Q3")
 client.institutions.sectors("0001067983")
 client.institutions.activity()                          # market-wide smart money

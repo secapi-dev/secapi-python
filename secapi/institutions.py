@@ -83,10 +83,14 @@ class Institutions(BaseResource):
         *,
         quarter: Optional[str] = None,
         limit: Optional[int] = None,
+        page: Optional[int] = None,
         sort: Optional[str] = None,
     ) -> InstitutionsHoldingsResponse:
-        """Portfolio positions for a manager. ``sort`` is value/shares/weight."""
-        params = {"quarter": quarter, "limit": limit, "sort": sort}
+        """Portfolio positions for a manager. ``sort`` is value/shares/weight.
+
+        ``page`` walks through portfolios larger than ``limit``.
+        """
+        params = {"quarter": quarter, "limit": limit, "page": page, "sort": sort}
         return self._client._get_model(f"/v1/institutions/{cik}/holdings", params, InstitutionsHoldingsResponse)
 
     def holdings_history(
@@ -95,11 +99,18 @@ class Institutions(BaseResource):
         *,
         year: Optional[int] = None,
         quarter: Optional[str] = None,
+        max_periods: Optional[int] = None,
         limit: Optional[int] = None,
         sort: Optional[str] = None,
     ) -> InstitutionsHoldingsHistoryResponse:
         """Holdings across filing periods (quarterly snapshots)."""
-        params = {"year": year, "quarter": quarter, "limit": limit, "sort": sort}
+        params = {
+            "year": year,
+            "quarter": quarter,
+            "maxPeriods": max_periods,
+            "limit": limit,
+            "sort": sort,
+        }
         return self._client._get_model(
             f"/v1/institutions/{cik}/holdings/history", params, InstitutionsHoldingsHistoryResponse
         )

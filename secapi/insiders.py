@@ -35,23 +35,34 @@ class Insiders(BaseResource):
         insider_role: Optional[str] = None,
         min_value: Optional[int] = None,
         limit: Optional[int] = None,
+        page: Optional[int] = None,
         accepted_from: Optional[DateParam] = None,
+        accepted_to: Optional[DateParam] = None,
         transaction_from: Optional[DateParam] = None,
+        transaction_to: Optional[DateParam] = None,
     ) -> InsiderTransactionsResponse:
         """Insider transactions, globally or scoped to a company / person.
 
         - default: the cross-company feed
-        - ``ticker="AAPL"``: transactions for one company
+        - ``ticker="AAPL"``: transactions for one company (a CIK works too)
         - ``person_cik="0001214123"``: transactions for one insider
 
-        ``acquired_disposed`` is ``"A"`` or ``"D"``.
+        ``acquired_disposed`` is ``"A"`` or ``"D"``. For open-market purchases
+        and sales use ``transaction_code="P"`` / ``"S"``. ``accepted_*`` bound
+        the filing's acceptance date and ``transaction_*`` the trade date, both
+        inclusive. Each trade is returned once; ``reporters`` lists every
+        owner on the filing, and a line restated by a later Form 4/A is
+        replaced by the amendment's line (``amendment`` is then true).
         """
         params = {
             "acquiredDisposed": acquired_disposed,
             "transactionCode": transaction_code,
             "limit": limit,
+            "page": page,
             "acceptedFrom": accepted_from,
+            "acceptedTo": accepted_to,
             "transactionFrom": transaction_from,
+            "transactionTo": transaction_to,
         }
         if person_cik is not None:
             return self._client._get_model(
@@ -69,30 +80,38 @@ class Insiders(BaseResource):
     #: ``client.insiders.search(...)`` reads naturally; same as ``transactions``.
     search = transactions
 
-    def latest(self, *, ticker: Optional[str] = None, limit: Optional[int] = None) -> InsiderTransactionsResponse:
+    def latest(
+        self,
+        *,
+        ticker: Optional[str] = None,
+        limit: Optional[int] = None,
+        page: Optional[int] = None,
+    ) -> InsiderTransactionsResponse:
         """The most recent insider transactions (optionally for one ``ticker``)."""
-        return self.transactions(ticker=ticker, limit=limit)
+        return self.transactions(ticker=ticker, limit=limit, page=page)
 
     def buying(
         self,
         *,
         limit: Optional[int] = None,
+        page: Optional[int] = None,
         start: Optional[DateParam] = None,
         end: Optional[DateParam] = None,
     ) -> InsiderTransactionsResponse:
-        """Recent insider buying (acquisition) activity across all companies."""
-        params = {"limit": limit, "from": start, "end": end}
+        """Open-market purchases (code P, non-derivative) across all companies."""
+        params = {"limit": limit, "page": page, "from": start, "end": end}
         return self._client._get_model("/v1/insiders/activity/buying", params, InsiderTransactionsResponse)
 
     def selling(
         self,
         *,
         limit: Optional[int] = None,
+        page: Optional[int] = None,
         start: Optional[DateParam] = None,
         end: Optional[DateParam] = None,
     ) -> InsiderTransactionsResponse:
-        """Recent insider selling (disposal) activity across all companies."""
-        params = {"limit": limit, "from": start, "end": end}
+        """Open-market sales (code S, non-derivative) across all companies."""
+        params = {"limit": limit, "page": page, "from": start, "end": end}
         return self._client._get_model("/v1/insiders/activity/selling", params, InsiderTransactionsResponse)
 
     def top_buyers(
@@ -178,8 +197,11 @@ class Insiders(BaseResource):
         acquired_disposed: Optional[str] = None,
         transaction_code: Optional[str] = None,
         limit: Optional[int] = None,
+        page: Optional[int] = None,
         accepted_from: Optional[DateParam] = None,
+        accepted_to: Optional[DateParam] = None,
         transaction_from: Optional[DateParam] = None,
+        transaction_to: Optional[DateParam] = None,
     ) -> InsiderTransactionsResponse:
         """Transactions for one insider across companies."""
         return self.transactions(
@@ -187,8 +209,11 @@ class Insiders(BaseResource):
             acquired_disposed=acquired_disposed,
             transaction_code=transaction_code,
             limit=limit,
+            page=page,
             accepted_from=accepted_from,
+            accepted_to=accepted_to,
             transaction_from=transaction_from,
+            transaction_to=transaction_to,
         )
 
     def person_holdings(self, cik: str) -> InsiderHoldingsResponse:

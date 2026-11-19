@@ -51,6 +51,15 @@ class CanonicalIncomeStatement(SecBaseModel):
     metrics: Optional[Dict[str, Any]] = Field(default=None, description="Line items keyed by short JSON names. Example keys: revenue, grossProfit, netIncome. Missing lines are present with null values.")
 
 
+class CanonicalStatement(SecBaseModel):
+    """Standardized financial statement response"""
+    filing: Optional[FilingContext] = Field(default=None, description="Filing these numbers came from")
+    statement: Optional[str] = Field(default=None, description="Which statement this is")
+    end_date: Optional[int] = Field(default=None, alias="endDate", description="Last day of the reporting window (YYYYMMDD)")
+    quarters: Optional[int] = Field(default=None, description="How many fiscal quarters the figures span (1 = one quarter, 4 = full year)")
+    metrics: Optional[Dict[str, Any]] = Field(default=None, description="Line items keyed by short JSON names. Example keys: revenue, grossProfit, netIncome. Missing lines are present with null values.")
+
+
 class CashFlowLine(SecBaseModel):
     """One cash-flow figure with a short label for UI"""
     label: Optional[str] = Field(default=None, description="Human-readable line title")
@@ -141,6 +150,36 @@ class CompanyFinancialStatement(SecBaseModel):
     filing: Optional[FilingContext] = Field(default=None, description="Filing the statement rows were taken from")
     stmt: Optional[str] = Field(default=None, description="Statement key (IS, BS, CF, SE, CI)")
     rows: Optional[List[StatementTableRow]] = Field(default=None, description="Flat table of presentation lines joined to tag metadata and numeric facts")
+
+
+class CompanyLatestFinancialsResponse(SecBaseModel):
+    """Latest reported financial statements for one company"""
+    issuer: Optional[CompanyIssuer] = Field(default=None, description="Company the statements belong to")
+    filing: Optional[FilingContext] = Field(default=None, description="The company's most recent filing with standardized statements")
+    income_statement: Optional[CanonicalIncomeStatement] = Field(default=None, alias="incomeStatement", description="Standardized income statement for the filing's period")
+    balance_sheet: Optional[CanonicalBalanceSheet] = Field(default=None, alias="balanceSheet", description="Standardized balance sheet at the filing's period end")
+    cash_flow: Optional[CanonicalCashFlow] = Field(default=None, alias="cashFlow", description="Standardized cash flow statement for the filing's period. Quarterly filings report cash flows year to date, so `quarters` can be 2 or 3.")
+
+
+class CompanySharesOutstandingResponse(SecBaseModel):
+    """Latest common shares outstanding for one company"""
+    issuer: Optional[CompanyIssuer] = Field(default=None, description="Issuer matched by CIK or ticker")
+    adsh: Optional[str] = Field(default=None, description="Accession number of the filing that reported this count")
+    form: Optional[str] = Field(default=None, description="SEC form type of that filing")
+    as_of_date: Optional[int] = Field(default=None, alias="asOfDate", description="As-of date of the share count (YYYYMMDD)")
+    shares_outstanding: Optional[float] = Field(default=None, alias="sharesOutstanding", description="Common shares outstanding on the as-of date")
+    unit: Optional[str] = Field(default=None, description="Unit of the share count")
+    filed: Optional[int] = Field(default=None, description="SEC filing date of the source filing (YYYYMMDD)")
+    accepted: Optional[datetime.datetime] = Field(default=None, description="SEC acceptance datetime of the source filing")
+
+
+class CompanyStandardizedStatementsResponse(SecBaseModel):
+    """Standardized statement history for one company, newest period first"""
+    issuer: Optional[CompanyIssuer] = Field(default=None, description="Company the statements belong to")
+    statement: Optional[str] = Field(default=None, description="Statement type Allowed values: income, balanceSheet, cashFlow")
+    period: Optional[str] = Field(default=None, description="Period basis used for the query Allowed values: annual, quarterly, ytd")
+    limit: Optional[int] = Field(default=None, description="Maximum number of periods requested")
+    periods: Optional[List[CanonicalStatement]] = Field(default=None, description="One standardized statement per period end, newest first. Each entry has the same shape as the by-accession standardized statement; `filing` is the filing the figures were taken from, which for older periods can be a later filing that restated them.")
 
 
 class Concept(SecBaseModel):
@@ -380,10 +419,10 @@ class FinancialSegmentFilter(SecBaseModel):
     metric: Optional[str] = Field(default=None, description="Canonical metric requested")
     axis: Optional[str] = Field(default=None, description="Optional XBRL axis filter")
     segment_type: Optional[str] = Field(default=None, alias="segmentType", description="Segment type filter. One or more of: product, service, geography, business, other. Allowed values: product, service, geography, business, other")
-    period: Optional[str] = Field(default=None, description="Fiscal year as YYYY. Use qtrs to select quarter vs annual.")
-    periods: Optional[str] = Field(default=None, description="Comma-separated fiscal periods for compare requests")
+    period: Optional[str] = Field(default=None, description="Single fiscal year filter as YYYY. Use qtrs to select quarter vs annual.")
+    periods: Optional[str] = Field(default=None, description="Comma-separated fiscal years as YYYY for compare requests")
     accession_number: Optional[str] = Field(default=None, alias="accessionNumber", description="SEC accession number used to scope the query")
-    qtrs: Optional[int] = Field(default=None, description="Quarter span filter: 1 = quarterly, 4 = annual")
+    qtrs: Optional[int] = Field(default=None, description="Reporting span: 1-3 for quarterly (Q1-Q3), 4 for fiscal year")
     limit: Optional[int] = Field(default=None, description="Maximum rows returned")
 
 
@@ -481,6 +520,7 @@ __all__ = [
     "CanonicalBalanceSheet",
     "CanonicalCashFlow",
     "CanonicalIncomeStatement",
+    "CanonicalStatement",
     "CashFlowLine",
     "CompaniesPagination",
     "CompaniesSearchFilter",
@@ -488,6 +528,9 @@ __all__ = [
     "CompanyFilingSubmission",
     "CompanyFinancialStatement",
     "CompanyIssuer",
+    "CompanyLatestFinancialsResponse",
+    "CompanySharesOutstandingResponse",
+    "CompanyStandardizedStatementsResponse",
     "Concept",
     "ConceptsFilter",
     "ConceptsListResponse",

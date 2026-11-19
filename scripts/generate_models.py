@@ -123,6 +123,22 @@ def topo_sort(names: List[str], deps: Dict[str, Set[str]]) -> List[str]:
     return ordered
 
 
+def one_of_properties(schema: dict, schemas: Dict[str, dict]) -> Dict[str, dict]:
+    """Properties for a schema that is only a ``oneOf`` of other schemas.
+
+    The API describes "one of these statement types" this way (for example the
+    periods of a statement history). A model with no fields would be useless,
+    so the generated class gets every field any variant has, all optional.
+    """
+    merged: Dict[str, dict] = {}
+    for variant in schema.get("oneOf", []):
+        ref = variant.get("$ref", "")
+        target = schemas.get(ref.rsplit("/", 1)[-1], {})
+        for name, prop in target.get("properties", {}).items():
+            merged.setdefault(name, prop)
+    return merged
+
+
 def build() -> Dict[str, str]:
     spec = load_spec(str(SPEC_PATH))
     schemas: Dict[str, dict] = spec["components"]["schemas"]
@@ -142,7 +158,7 @@ def build() -> Dict[str, str]:
         cls = friendly(orig)
         module = domain_of(orig)
         resolver = TypeResolver()
-        props: Dict[str, dict] = schema.get("properties", {})
+        props: Dict[str, dict] = schema.get("properties", {}) or one_of_properties(schema, schemas)
         uses = module_uses[module]
 
         lines: List[str] = []

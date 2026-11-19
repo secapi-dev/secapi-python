@@ -39,6 +39,75 @@ def test_financials_balance_sheet_by_accession(client, mock_api):
     )
 
 
+def test_financials_by_company(client, mock_api):
+    client.financials.latest("AAPL", period="annual")
+    assert mock_api.last.url.path == "/v1/financials/AAPL/latest"
+    assert _params(mock_api.last) == {"period": "annual"}
+
+    client.financials.filings("0000320193", limit=5, page=2)
+    assert mock_api.last.url.path == "/v1/financials/0000320193/filings"
+    assert _params(mock_api.last) == {"limit": "5", "page": "2"}
+
+    client.financials.statement_history("BRK.B", "cash-flow", period="ytd", limit=8)
+    assert mock_api.last.url.path == "/v1/financials/BRK.B/statements/cash-flow/standardized"
+    assert _params(mock_api.last) == {"period": "ytd", "limit": "8"}
+
+    client.financials.company_statement("AAPL", "stockholders-equity")
+    assert mock_api.last.url.path == "/v1/financials/AAPL/statements/stockholders-equity"
+    assert _params(mock_api.last) == {}
+
+    client.financials.shares_outstanding(ticker="AAPL")
+    assert mock_api.last.url.path == "/v1/financials/shares-outstanding"
+    assert _params(mock_api.last) == {"ticker": "AAPL"}
+
+
+def test_financials_statement_by_ticker_is_one_request(client, mock_api):
+    client.financials.income_statement(ticker="MSFT")
+    assert len(mock_api.requests) == 1
+    assert mock_api.last.url.path == "/v1/financials/MSFT/statements/income-statement"
+    assert _params(mock_api.last) == {}
+
+    client.financials.cash_flow(ticker="AAPL", form="10-K")
+    assert len(mock_api.requests) == 2
+    assert mock_api.last.url.path == "/v1/financials/AAPL/statements/cash-flow"
+    assert _params(mock_api.last) == {"period": "annual"}
+
+
+def test_financials_statement_for_other_forms_searches_filings(client, mock_api):
+    import pytest
+
+    with pytest.raises(ValueError, match="Could not find a filing"):
+        client.financials.balance_sheet(ticker="TSM", form="20-F")
+    assert mock_api.last.url.path == "/v1/financials/companies/search"
+
+
+def test_insiders_date_ranges_and_paging(client, mock_api):
+    client.insiders.transactions(
+        ticker="AAPL",
+        accepted_from="2026-01-01",
+        accepted_to="2026-03-31",
+        transaction_from="2025-12-01",
+        transaction_to="2026-03-31",
+        page=3,
+        limit=50,
+    )
+    assert _params(mock_api.last) == {
+        "acceptedFrom": "2026-01-01",
+        "acceptedTo": "2026-03-31",
+        "transactionFrom": "2025-12-01",
+        "transactionTo": "2026-03-31",
+        "page": "3",
+        "limit": "50",
+    }
+
+    client.insiders.person_transactions("0001214128", accepted_to="2020-12-31", page=2)
+    assert mock_api.last.url.path == "/v1/insiders/person/0001214128/transactions"
+    assert _params(mock_api.last) == {"acceptedTo": "2020-12-31", "page": "2"}
+
+    client.insiders.selling(limit=10, page=2)
+    assert _params(mock_api.last) == {"limit": "10", "page": "2"}
+
+
 def test_insiders_transactions_routing(client, mock_api):
     client.insiders.transactions()
     assert mock_api.last.url.path == "/v1/insiders/transactions"
@@ -60,9 +129,9 @@ def test_insiders_buying_uses_from_param(client, mock_api):
 
 
 def test_institutions_holdings(client, mock_api):
-    client.institutions.holdings("0001067983", sort="value", limit=10)
+    client.institutions.holdings("0001067983", sort="value", limit=10, page=2)
     assert mock_api.last.url.path == "/v1/institutions/0001067983/holdings"
-    assert _params(mock_api.last) == {"sort": "value", "limit": "10"}
+    assert _params(mock_api.last) == {"sort": "value", "limit": "10", "page": "2"}
 
 
 def test_institutions_buys(client, mock_api):

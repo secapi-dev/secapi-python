@@ -389,12 +389,14 @@ class InstitutionsHoldingsHistoryFilter(SecBaseModel):
     cik: Optional[str] = Field(default=None, description="Normalized institutional manager CIK")
     year: Optional[int] = Field(default=None, description="Requested calendar year")
     quarter: Optional[str] = Field(default=None, description="Fiscal quarter label")
+    max_periods: Optional[int] = Field(default=None, alias="maxPeriods", description="Maximum number of filing periods returned when year and quarter are omitted")
     limit: Optional[int] = Field(default=None, description="Maximum number of holding rows requested per filing period")
     sort: Optional[str] = Field(default=None, description="Sort key Allowed values: value, shares, weight")
 
 
 class InstitutionsHoldingsPagination(SecBaseModel):
     """Pagination metadata for institution holdings results"""
+    page: Optional[int] = Field(default=None, description="1-based page number; absent where the endpoint is not paged")
     limit: Optional[int] = Field(default=None, description="Maximum number of holding rows requested")
     has_more_data: Optional[bool] = Field(default=None, alias="hasMoreData", description="Whether more holding rows are available")
 

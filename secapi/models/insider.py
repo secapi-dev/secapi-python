@@ -306,12 +306,15 @@ class InsiderTransaction(SecBaseModel):
     filing_url: Optional[str] = Field(default=None, alias="filingUrl", description="SEC filing URL when available")
     accepted: Optional[datetime.datetime] = Field(default=None, description="SEC acceptance datetime")
     issuer: Optional[InsiderIssuer] = Field(default=None, description="Issuer from the Form 4 filing")
-    reporter: Optional[InsiderReporter] = Field(default=None, description="Reporting owner from the Form 4 filing")
+    form_type: Optional[str] = Field(default=None, alias="formType", description="SEC form type of the filing: 4, or 4/A for an amendment")
+    amendment: Optional[bool] = Field(default=None, description="True when the row comes from a Form 4/A. Lines an amendment restates replace the matching lines of the earlier filing, which are no longer returned.")
+    reporter: Optional[InsiderReporter] = Field(default=None, description="First reporting owner on the filing (for by-person requests, the requested person)")
+    reporters: Optional[List[InsiderReporter]] = Field(default=None, description="Every reporting owner on the filing. A jointly filed trade is returned once, with all of its owners listed here.")
     security_type: Optional[str] = Field(default=None, alias="securityType", description="Security title/type")
     transaction_date: Optional[datetime.date] = Field(default=None, alias="transactionDate", description="Transaction date")
     deemed_execution_date: Optional[datetime.date] = Field(default=None, alias="deemedExecutionDate", description="Deemed execution date")
     transaction_code: Optional[str] = Field(default=None, alias="transactionCode", description="SEC transaction code")
-    type: Optional[str] = Field(default=None, description="Buy/sell interpretation based on acquired/disposed flag")
+    type: Optional[str] = Field(default=None, description="buy = open-market purchase (code P), sell = open-market sale (code S), non-derivative only; null for grants, exercises, tax withholding, gifts and derivative rows. Use acquiredDisposed for direction.")
     shares: Optional[float] = Field(default=None, description="Shares transacted")
     price_per_share: Optional[float] = Field(default=None, alias="pricePerShare", description="Transaction price per share")
     value: Optional[float] = Field(default=None, description="Estimated transaction value: shares multiplied by price per share")
@@ -335,6 +338,7 @@ class InsiderTransactionsFilter(SecBaseModel):
     insider_role: Optional[str] = Field(default=None, alias="insiderRole", description="Reported insider role/title filter")
     min_value: Optional[int] = Field(default=None, alias="minValue", description="Minimum estimated transaction value")
     accepted_from: Optional[datetime.date] = Field(default=None, alias="acceptedFrom", description="Include SEC filings accepted on or after this date")
+    accepted_to: Optional[datetime.date] = Field(default=None, alias="acceptedTo", description="Include SEC filings accepted on or before this date")
     transaction_from: Optional[datetime.date] = Field(default=None, alias="transactionFrom", description="Include transactions dated on or after this date")
     transaction_to: Optional[datetime.date] = Field(default=None, alias="transactionTo", description="Include transactions dated on or before this date")
     limit: Optional[int] = Field(default=None, description="Maximum rows returned")
@@ -342,6 +346,7 @@ class InsiderTransactionsFilter(SecBaseModel):
 
 class InsiderTransactionsPagination(SecBaseModel):
     """Pagination metadata for insider transaction feed results"""
+    page: Optional[int] = Field(default=None, description="1-based page number")
     limit: Optional[int] = Field(default=None, description="Maximum number of records requested")
     has_more_data: Optional[bool] = Field(default=None, alias="hasMoreData", description="Whether more records are available after this result set")
 

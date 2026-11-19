@@ -73,20 +73,34 @@ def test_get_returns_list_of_models(client, mock_api):
     assert filings[0].form_type == "10-K"
 
 
-def test_income_statement_resolves_latest_filing_by_ticker(make_client):
+def test_income_statement_by_ticker_uses_the_company_endpoint(make_client):
+    paths = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.path)
+        return httpx.Response(200, json={"stmt": "IS", "rows": []})
+
+    client = make_client(handler)
+    statement = client.financials.income_statement(ticker="MSFT")
+    # The API picks the company's latest filing that has the statement: one request.
+    assert paths == ["/v1/financials/MSFT/statements/income-statement"]
+    assert statement.stmt == "IS"
+
+
+def test_statement_for_another_form_resolves_latest_filing_by_ticker(make_client):
     captured = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         if path == "/v1/financials/companies/search":
-            assert request.url.params["ticker"] == "MSFT"
+            assert request.url.params["ticker"] == "TSM"
             return httpx.Response(
                 200,
                 json={
-                    "issuer": {"ticker": "MSFT", "cik": "0000789019"},
+                    "issuer": {"ticker": "TSM", "cik": "0001046179"},
                     "filings": [
-                        {"accessionNumber": "old-filing", "form": "10-K", "filed": "2020-01-01"},
-                        {"accessionNumber": "newest-filing", "form": "10-K", "filed": "2026-01-15"},
+                        {"accessionNumber": "old-filing", "form": "20-F", "filed": "2020-01-01"},
+                        {"accessionNumber": "newest-filing", "form": "20-F", "filed": "2026-01-15"},
                     ],
                 },
             )
@@ -94,8 +108,9 @@ def test_income_statement_resolves_latest_filing_by_ticker(make_client):
         return httpx.Response(200, json={"stmt": "IS", "rows": []})
 
     client = make_client(handler)
-    client.financials.income_statement(ticker="MSFT")
-    # It should pick the most recently filed accession number.
+    client.financials.income_statement(ticker="TSM", form="20-F")
+    # A form the company endpoint cannot filter on still goes through the filing
+    # search, which picks the most recently filed accession number.
     assert captured["statement_path"] == (
         "/v1/financials/filings/newest-filing/statements/income-statement"
     )

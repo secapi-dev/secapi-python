@@ -12,6 +12,9 @@ from .models.financial import (
     CanonicalIncomeStatement,
     CompaniesSearchResponse,
     CompanyFinancialStatement,
+    CompanyLatestFinancialsResponse,
+    CompanySharesOutstandingResponse,
+    CompanyStandardizedStatementsResponse,
     ConceptsListResponse,
     FinancialMetricRankingResponse,
     FinancialMetricSeriesResponse,
@@ -22,6 +25,21 @@ from .models.financial import (
 )
 
 _STATEMENTS_BASE = "/v1/financials/filings/{accession}/statements"
+
+#: Marks a ``form`` the by-company statement endpoint cannot filter on.
+_OTHER_FORM = "other"
+
+
+def _period_for_form(form: Optional[str]) -> Optional[str]:
+    """``None`` for no form filter, annual / quarterly for 10-K / 10-Q, else ``_OTHER_FORM``."""
+    if not form:
+        return None
+    upper = form.strip().upper()
+    if upper == "10-K":
+        return "annual"
+    if upper == "10-Q":
+        return "quarterly"
+    return _OTHER_FORM
 
 
 class Financials(BaseResource):
@@ -54,6 +72,90 @@ class Financials(BaseResource):
         params = {"q": q, "version": version, "custom": custom, "limit": limit, "page": page}
         return self._client._get_model("/v1/financials/concepts/search", params, ConceptsListResponse)
 
+    # -- by company (ticker or CIK, no accession number needed) ------------
+
+    def latest(self, issuer: str, *, period: Optional[str] = None) -> CompanyLatestFinancialsResponse:
+        """The company's most recent 10-K or 10-Q, standardized, in one response.
+
+        Returns the filing with its income statement, balance sheet and cash
+        flow. ``issuer`` is a ticker or a CIK. ``period`` is ``"annual"`` (10-K)
+        or ``"quarterly"`` (10-Q); omit it for whichever is most recent. A
+        statement is ``None`` when it could not be standardized for that filing.
+
+        Example::
+
+            latest = client.financials.latest("AAPL")
+            latest.income_statement.metrics["revenue"]
+        """
+        return self._client._get_model(
+            f"/v1/financials/{issuer}/latest", {"period": period}, CompanyLatestFinancialsResponse
+        )
+
+    def filings(
+        self,
+        issuer: str,
+        *,
+        limit: Optional[int] = None,
+        page: Optional[int] = None,
+    ) -> CompaniesSearchResponse:
+        """Annual and quarterly filings of a company, newest first."""
+        params = {"limit": limit, "page": page}
+        return self._client._get_model(f"/v1/financials/{issuer}/filings", params, CompaniesSearchResponse)
+
+    def company_statement(
+        self,
+        issuer: str,
+        statement: str,
+        *,
+        period: Optional[str] = None,
+    ) -> CompanyFinancialStatement:
+        """A statement as filed, from the company's latest filing that has it.
+
+        ``statement`` is one of ``income-statement``, ``balance-sheet``,
+        ``cash-flow``, ``stockholders-equity`` or ``comprehensive-income``.
+        ``period`` restricts the filing to ``"annual"`` or ``"quarterly"``.
+        """
+        return self._client._get_model(
+            f"/v1/financials/{issuer}/statements/{statement}", {"period": period}, CompanyFinancialStatement
+        )
+
+    def statement_history(
+        self,
+        issuer: str,
+        statement: str,
+        *,
+        period: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> CompanyStandardizedStatementsResponse:
+        """Standardized statement history: the most recent periods, newest first.
+
+        ``statement`` is ``income-statement``, ``balance-sheet`` or
+        ``cash-flow``. ``period`` is ``"annual"`` (fiscal years), ``"quarterly"``
+        (single quarters) or ``"ytd"`` (year-to-date spans from quarterly
+        filings - the complete series for cash flow, which 10-Qs report year
+        to date). ``limit`` is 1-40 periods. A restated period comes from the
+        latest filing that reports it.
+
+        Example::
+
+            client.financials.statement_history("AAPL", "income-statement", period="annual", limit=5)
+        """
+        params = {"period": period, "limit": limit}
+        return self._client._get_model(
+            f"/v1/financials/{issuer}/statements/{statement}/standardized",
+            params,
+            CompanyStandardizedStatementsResponse,
+        )
+
+    def shares_outstanding(
+        self, *, ticker: Optional[str] = None, cik: Optional[str] = None
+    ) -> CompanySharesOutstandingResponse:
+        """Latest reported shares outstanding (``cik`` takes precedence over ``ticker``)."""
+        params = {"ticker": ticker, "cik": cik}
+        return self._client._get_model(
+            "/v1/financials/shares-outstanding", params, CompanySharesOutstandingResponse
+        )
+
     # -- as-reported statements (by accession or ticker/cik) ---------------
 
     def income_statement(
@@ -74,8 +176,7 @@ class Financials(BaseResource):
             client.financials.income_statement(ticker="MSFT")
             client.financials.income_statement("0000320193-26-000006")
         """
-        accession = self._require_accession(accession_number, ticker=ticker, cik=cik, form=form)
-        return self._statement(accession, "income-statement")
+        return self._statement_for("income-statement", accession_number, ticker=ticker, cik=cik, form=form)
 
     def balance_sheet(
         self,
@@ -86,8 +187,7 @@ class Financials(BaseResource):
         form: Optional[str] = None,
     ) -> CompanyFinancialStatement:
         """As-reported balance sheet for a filing (by accession or ticker/cik)."""
-        accession = self._require_accession(accession_number, ticker=ticker, cik=cik, form=form)
-        return self._statement(accession, "balance-sheet")
+        return self._statement_for("balance-sheet", accession_number, ticker=ticker, cik=cik, form=form)
 
     def cash_flow(
         self,
@@ -98,8 +198,7 @@ class Financials(BaseResource):
         form: Optional[str] = None,
     ) -> CompanyFinancialStatement:
         """As-reported cash flow statement (by accession or ticker/cik)."""
-        accession = self._require_accession(accession_number, ticker=ticker, cik=cik, form=form)
-        return self._statement(accession, "cash-flow")
+        return self._statement_for("cash-flow", accession_number, ticker=ticker, cik=cik, form=form)
 
     def stockholders_equity(
         self,
@@ -110,8 +209,7 @@ class Financials(BaseResource):
         form: Optional[str] = None,
     ) -> CompanyFinancialStatement:
         """As-reported stockholders' equity statement (by accession or ticker/cik)."""
-        accession = self._require_accession(accession_number, ticker=ticker, cik=cik, form=form)
-        return self._statement(accession, "stockholders-equity")
+        return self._statement_for("stockholders-equity", accession_number, ticker=ticker, cik=cik, form=form)
 
     def comprehensive_income(
         self,
@@ -122,8 +220,7 @@ class Financials(BaseResource):
         form: Optional[str] = None,
     ) -> CompanyFinancialStatement:
         """As-reported comprehensive income statement (by accession or ticker/cik)."""
-        accession = self._require_accession(accession_number, ticker=ticker, cik=cik, form=form)
-        return self._statement(accession, "comprehensive-income")
+        return self._statement_for("comprehensive-income", accession_number, ticker=ticker, cik=cik, form=form)
 
     def xbrl(
         self,
@@ -430,6 +527,28 @@ class Financials(BaseResource):
     def _statement(self, accession: str, kind: str) -> CompanyFinancialStatement:
         path = f"{_STATEMENTS_BASE.format(accession=accession)}/{kind}"
         return self._client._get_model(path, None, CompanyFinancialStatement)
+
+    def _statement_for(
+        self,
+        kind: str,
+        accession_number: Optional[str],
+        *,
+        ticker: Optional[str],
+        cik: Optional[str],
+        form: Optional[str],
+    ) -> CompanyFinancialStatement:
+        """One statement, by accession number or by company.
+
+        By company the API picks the latest filing that has the statement, in
+        one request. A ``form`` other than 10-K / 10-Q still goes through the
+        filing search, which can match any form.
+        """
+        issuer = cik or ticker
+        period = _period_for_form(form)
+        if not accession_number and issuer and period is not _OTHER_FORM:
+            return self.company_statement(issuer, kind, period=period)
+        accession = self._require_accession(accession_number, ticker=ticker, cik=cik, form=form)
+        return self._statement(accession, kind)
 
     def _require_accession(
         self,
