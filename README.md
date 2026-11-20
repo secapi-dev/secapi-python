@@ -33,7 +33,7 @@ The PyPI package is **`secapi-py`** (the plain `secapi` name is taken by another
 from secapi import SECClient
 ```
 
-Requires Python 3.8+.
+Requires Python 3.11+.
 
 ## Authentication
 
